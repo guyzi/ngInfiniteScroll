@@ -4,6 +4,16 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
   link: (scope, elem, attrs) ->
     $window = angular.element($window)
 
+    orientation = if attrs.orientation then attrs.orientation else 'y'
+
+    switch orientation
+      when 'y'
+        side = 'top'
+        size = 'height'
+      when 'x'
+        side = 'left'
+        size = 'width'
+
     # infinite-scroll-distance specifies how close to the bottom of the page
     # the window is allowed to be before we trigger a new scroll. The value
     # provided is multiplied by the window height; for example, to load
@@ -29,16 +39,41 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
           checkWhenEnabled = false
           handler()
 
-    # infinite-scroll specifies a function to call when the window
+    container = $window
+
+    # infinite-scroll-container sets the container which we want to be
+    # infinte scrolled, instead of the whole window window. Must be an
+    # Angular or jQuery element.
+    if attrs.infiniteScrollContainer?
+      scope.$watch attrs.infiniteScrollContainer, (value) ->
+        value = angular.element(value)
+        if value?
+          container = value
+        else
+          throw new Exception("invalid infinite-scroll-container attribute.")
+
+    # infinite-scroll-parent establishes this element's parent as the
+    # container infinitely scrolled instead of the whole window.
+    if attrs.infiniteScrollParent?
+      container = elem.parent()
+      scope.$watch attrs.infiniteScrollParent, () ->
+        container = elem.parent()
+
+    # infinite-scroll specifies a function to call when the window,
+    # or some other container specified by infinite-scroll-container,
     # is scrolled within a certain range from the bottom of the
     # document. It is recommended to use infinite-scroll-disabled
     # with a boolean that is set to true when the function is
     # called in order to throttle the function call.
     handler = ->
-      windowBottom = $window.height() + $window.scrollTop()
-      elementBottom = elem.offset().top + elem.height()
-      remaining = elementBottom - windowBottom
-      shouldScroll = remaining <= $window.height() * scrollDistance
+      if container == $window
+        containerBottom = container.height() + container.scrollTop()
+        elementBottom = elem.offset().top + elem.height()
+      else
+        containerOffset = container[size]()
+        elementOffset = elem.offset()[side] - container.offset()[side] + elem[size]()
+      remaining = elementOffset - containerOffset
+      shouldScroll = remaining <= container[size]() * scrollDistance
 
       if shouldScroll && scrollEnabled
         if $rootScope.$$phase
@@ -48,9 +83,9 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
       else if shouldScroll
         checkWhenEnabled = true
 
-    $window.on 'scroll', handler
+    container.on 'scroll', handler
     scope.$on '$destroy', ->
-      $window.off 'scroll', handler
+      container.off 'scroll', handler
 
     $timeout (->
       if attrs.infiniteScrollImmediateCheck
