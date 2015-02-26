@@ -45,12 +45,13 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
     # infinte scrolled, instead of the whole window window. Must be an
     # Angular or jQuery element.
     if attrs.infiniteScrollContainer?
-      scope.$watch attrs.infiniteScrollContainer, (value) ->
-        value = angular.element(value)
-        if value?
-          container = value
-        else
-          throw new Exception("invalid infinite-scroll-container attribute.")
+      container = elem
+      # scope.$watch attrs.infiniteScrollContainer, (value) ->
+      #   value = angular.element(value)
+      #   if value?
+      #     container = value
+      #   else
+      #     throw new Exception("invalid infinite-scroll-container attribute.")
 
     # infinite-scroll-parent establishes this element's parent as the
     # container infinitely scrolled instead of the whole window.
